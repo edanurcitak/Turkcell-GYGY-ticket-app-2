@@ -1,4 +1,4 @@
-package com.turkcell.data.network
+package com.turkcell.data.util
 
 // tüm api isteklerim tek kalıpta ilerlesin
 
@@ -13,7 +13,7 @@ sealed interface ApiResult<out T> {
 inline fun <T, R> ApiResult<T>.fold(
     onSuccess: (T) -> R,
     onError: (Throwable) -> R
-): R= when(this) {
+): R= when(this){
     is ApiResult.Success -> onSuccess(data)
     is ApiResult.Error -> onError(error)
 }

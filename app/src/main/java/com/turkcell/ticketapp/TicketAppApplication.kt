@@ -1,6 +1,7 @@
 package com.turkcell.ticketapp
 
 import android.app.Application
+import com.turkcell.data.di.dataModule
 import com.turkcell.ticketapp.di.appModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -17,6 +18,7 @@ class TicketAppApplication : Application() {
             androidLogger()
             androidContext(this@TicketAppApplication) //Uygulamanın bağlamı, tamamı
             modules(
+                dataModule, // dataModule olarak tanımlanan bağımlılıkları projemde aktif et.
                 appModule
             )
         }

@@ -33,11 +33,32 @@ class AuthRepositoryImpl(
         }
 
 
+    //REGISTER
     override suspend fun register(
+        name: String,
+        surname: String,
+        phone: String,
         email: String,
         password: String
-    ): Result<AuthSession> {
-        TODO("Not yet implemented")
+    ): Result<AuthSession> = runCatchingApi {
+        authApi.register(CredentialsDto(
+            email = email,
+            password = password,
+            name = name,
+            surname = surname,
+            phone = phone
+        ))
+    }.onSuccess {
+    }.map { i ->
+        AuthSession(
+            user = User(
+                id = i.user.id,
+                email = i.user.email,
+                role = UserRole.fromApi(i.user.role)
+            ),
+            accessToken = i.accessToken,
+            refreshToken = i.refreshToken
+        )
     }
 
     override suspend fun logout(): Result<Unit> {

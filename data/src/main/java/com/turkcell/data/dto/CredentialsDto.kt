@@ -4,4 +4,11 @@ import kotlinx.serialization.Serializable
 
 // /auth/login ve /auth/register'a atılan istek
 @Serializable
-data class CredentialsDto(val email: String, val password: String) {}
+data class CredentialsDto(
+    val email: String,
+    val password: String,
+
+    val name: String? = null,
+    val surname: String? = null,
+    val phone: String? = null
+) {}
