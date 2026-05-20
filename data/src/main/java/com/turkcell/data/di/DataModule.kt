@@ -1,8 +1,17 @@
 package com.turkcell.data.di
 
 import com.turkcell.core.domain.AuthRepository
+import com.turkcell.core.domain.EventRepository
+import com.turkcell.core.domain.TicketRepository
+import com.turkcell.data.local.TokenStore
+import com.turkcell.data.network.AuthInterceptor
+import com.turkcell.data.network.TokenAuthenticator
 import com.turkcell.data.remote.AuthApi
+import com.turkcell.data.remote.EventApi
+import com.turkcell.data.remote.TicketApi
 import com.turkcell.data.repository.AuthRepositoryImpl
+import com.turkcell.data.repository.EventRepositoryImpl
+import com.turkcell.data.repository.TicketRepositoryImpl
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -34,9 +43,23 @@ val dataModule = module {
         }
     }
 
+    single {
+        TokenStore(context=get())
+    }
+
+    single { AuthInterceptor(tokenStore = get()) }
+
+    single {
+        TokenAuthenticator(
+            tokenStore = get()
+        )
+    }
+
     // HTTP isteklerini yönetmek..
     single {
         OkHttpClient.Builder()
+            .addInterceptor(get<AuthInterceptor>())
+            .authenticator(get<TokenAuthenticator>())
             .addInterceptor(get<HttpLoggingInterceptor>())
             .build()
     }
@@ -53,11 +76,27 @@ val dataModule = module {
 
     single<AuthRepository> {
         AuthRepositoryImpl(
-            authApi = get()
+            authApi = get(),
+            tokenStore = get()
         )
     }
 
     // factory -> Her çağırıldığı noktada yeni instance üretir. Her fonksiyon için birer örnek
 
     // scoped -> Class -> tüm fonksiyonlarına 1 örnek
+
+    single { get<Retrofit>().create(EventApi::class.java) }
+    single { get<Retrofit>().create(TicketApi::class.java) }
+
+    single<EventRepository> {
+        EventRepositoryImpl(
+            eventApi = get()
+        )
+    }
+
+    single<TicketRepository> {
+        TicketRepositoryImpl(
+            ticketApi = get()
+        )
+    }
 }

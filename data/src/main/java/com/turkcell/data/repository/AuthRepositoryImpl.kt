@@ -5,35 +5,35 @@ import com.turkcell.core.domain.AuthSession
 import com.turkcell.core.domain.User
 import com.turkcell.core.domain.UserRole
 import com.turkcell.data.dto.CredentialsDto
+import com.turkcell.data.local.TokenStore
 import com.turkcell.data.remote.AuthApi
 import com.turkcell.data.util.runCatchingApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class AuthRepositoryImpl(
-    private val authApi: AuthApi
+    private val authApi: AuthApi,
+    private val tokenStore: TokenStore
 ) : AuthRepository {
-    override val isLoggedIn: Flow<Boolean>
-        get() = TODO("Not yet implemented")
+    override val isLoggedIn: Flow<Boolean> = tokenStore.accessToken.map { it != null }
 
     override suspend fun login(
         email: String,
         password: String
     ): Result<AuthSession> = runCatchingApi {
         authApi.login(CredentialsDto(email=email, password=password))
-    } .onSuccess{
-        // jwt'i bi yere yaz..
+    }.onSuccess {
+        tokenStore.save(it.accessToken, it.refreshToken)
     }
         .map {
-                i -> AuthSession(
+                tokenPairDto -> AuthSession(
             user = User(
-                i.user.id, i.user.email, UserRole.fromApi(i.user.role),
+                tokenPairDto.user.id, tokenPairDto.user.email, UserRole.fromApi(tokenPairDto.user.role),
             ),
-            accessToken = i.accessToken,
-            refreshToken = i.refreshToken)
+            accessToken = tokenPairDto.accessToken,
+            refreshToken = tokenPairDto.refreshToken)
         }
 
-
-    //REGISTER
     override suspend fun register(
         name: String,
         surname: String,
@@ -41,6 +41,8 @@ class AuthRepositoryImpl(
         email: String,
         password: String
     ): Result<AuthSession> = runCatchingApi {
+
+        // Yeni alanları da DTO paketine doldurup API'ye yolluyoruz
         authApi.register(CredentialsDto(
             email = email,
             password = password,
@@ -48,7 +50,9 @@ class AuthRepositoryImpl(
             surname = surname,
             phone = phone
         ))
+
     }.onSuccess {
+        // İşlem başarılıysa burası çalışır
     }.map { i ->
         AuthSession(
             user = User(

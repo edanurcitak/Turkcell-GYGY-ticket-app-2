@@ -8,4 +8,4 @@ object Login
 @Serializable
 object Register
 @Serializable
-object Home
+object HomePage
