@@ -1,6 +1,10 @@
-package com.turkcell.data.dto
+package com.turkcell.data.dto.event
+
+import kotlinx.serialization.Serializable
 
 // Sunucudan gelen Bilet Türü formatı
+
+@Serializable
 data class TicketTypeDto(
     val id: String,
     val name: String,

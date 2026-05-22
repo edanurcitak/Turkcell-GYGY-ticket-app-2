@@ -1,6 +1,6 @@
 package com.turkcell.data.remote
 
-import com.turkcell.data.dto.EventDto
+import com.turkcell.data.dto.event.EventDto
 import retrofit2.http.GET
 
 interface EventApi {

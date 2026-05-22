@@ -1,4 +1,4 @@
-package com.turkcell.core.domain
+package com.turkcell.core.domain.auth
 
 enum class UserRole {
     USER, STAFF, ADMIN;
@@ -6,9 +6,9 @@ enum class UserRole {
     companion object {
         // parser func.
         fun fromApi(value: String?): UserRole = when (value?.uppercase()) {
-            "ADMIN" -> UserRole.ADMIN
-            "STAFF" -> UserRole.STAFF
-            else -> UserRole.USER
+            "ADMIN" -> ADMIN
+            "STAFF" -> STAFF
+            else -> USER
         }
     }
 }

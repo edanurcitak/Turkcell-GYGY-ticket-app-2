@@ -1,4 +1,4 @@
-package com.turkcell.core.domain
+package com.turkcell.core.domain.event
 
 interface EventRepository {
     // Sunucudan (veya lokalden) bir Etkinlik listesi getirme sözleşmesi

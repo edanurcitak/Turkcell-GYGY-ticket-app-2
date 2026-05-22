@@ -1,6 +1,6 @@
 package com.turkcell.data.remote
 
-import com.turkcell.data.dto.TicketDto
+import com.turkcell.data.dto.event.TicketDto
 import retrofit2.http.GET
 
 interface TicketApi {

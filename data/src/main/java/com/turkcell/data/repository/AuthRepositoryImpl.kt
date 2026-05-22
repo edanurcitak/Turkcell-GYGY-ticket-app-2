@@ -1,10 +1,10 @@
 package com.turkcell.data.repository
 
-import com.turkcell.core.domain.AuthRepository
-import com.turkcell.core.domain.AuthSession
-import com.turkcell.core.domain.User
-import com.turkcell.core.domain.UserRole
-import com.turkcell.data.dto.CredentialsDto
+import com.turkcell.core.domain.auth.AuthRepository
+import com.turkcell.core.domain.auth.AuthSession
+import com.turkcell.core.domain.auth.User
+import com.turkcell.core.domain.auth.UserRole
+import com.turkcell.data.dto.auth.CredentialsDto
 import com.turkcell.data.local.TokenStore
 import com.turkcell.data.remote.AuthApi
 import com.turkcell.data.util.runCatchingApi
@@ -43,13 +43,15 @@ class AuthRepositoryImpl(
     ): Result<AuthSession> = runCatchingApi {
 
         // Yeni alanları da DTO paketine doldurup API'ye yolluyoruz
-        authApi.register(CredentialsDto(
+        authApi.register(
+            CredentialsDto(
             email = email,
             password = password,
             name = name,
             surname = surname,
             phone = phone
-        ))
+        )
+        )
 
     }.onSuccess {
         // İşlem başarılıysa burası çalışır

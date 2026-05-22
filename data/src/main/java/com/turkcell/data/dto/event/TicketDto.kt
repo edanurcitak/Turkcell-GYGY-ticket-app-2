@@ -1,6 +1,9 @@
-package com.turkcell.data.dto
+package com.turkcell.data.dto.event
+
+import kotlinx.serialization.Serializable
 
 // Sunucudan gelen Satın Alınmış Bilet formatı
+@Serializable
 data class TicketDto(
     val id: String,
     val qrCode: String,

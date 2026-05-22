@@ -1,8 +1,8 @@
 package com.turkcell.data.repository
 
-import com.turkcell.core.domain.Event
-import com.turkcell.core.domain.EventRepository
-import com.turkcell.core.domain.TicketType
+import com.turkcell.core.domain.event.Event
+import com.turkcell.core.domain.event.EventRepository
+import com.turkcell.core.domain.event.TicketType
 import com.turkcell.data.remote.EventApi
 import com.turkcell.data.util.runCatchingApi
 
@@ -18,7 +18,7 @@ class EventRepositoryImpl(
                 id = dto.id,
                 name = dto.name,
                 description = dto.description,
-                venue = dto.venue,
+                venue = dto.place,
                 startsAt = dto.startsAt,
                 endsAt = dto.endsAt,
                 ticketTypes = dto.ticketTypes.map { ticketTypeDto ->
