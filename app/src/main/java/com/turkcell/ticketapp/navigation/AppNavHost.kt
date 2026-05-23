@@ -50,19 +50,16 @@ private fun AuthedNavHost(navController: NavHostController) {
 
         composable<HomePage> {
             HomePageScreen(
-                onTicketClick = { selectedTicketId ->
-                    // Bilet tıklandığında TicketDetail sayfasına ID ile birlikte geçiş yap
-                    navController.navigate(TicketDetail(ticketId = selectedTicketId))
+                onTicketClick = { selectedTypeId ->
+                    // Artık türe göre yönlendiriyoruz
+                    navController.navigate(TicketDetail(ticketTypeId = selectedTypeId))
                 }
             )
         }
 
         composable<TicketDetail> { backStackEntry ->
-            // Route içinden gelen ID'yi yakala
             val detailRoute = backStackEntry.toRoute<TicketDetail>()
-
-            // Ekranı çağır ve yakalanan ID'yi içine pasla
-            TicketDetailScreen(ticketId = detailRoute.ticketId)
+            TicketDetailScreen(ticketTypeId = detailRoute.ticketTypeId) // İsim güncellendi
         }
     }
 }

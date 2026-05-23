@@ -91,13 +91,13 @@ fun HomePageScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(8.dp)
-                                        .clickable { onTicketClick(ticketItem.ticketId) },
+                                        .clickable { onTicketClick(ticketItem.ticketTypeId) },
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                 ) {
                                     Column(modifier = Modifier.padding(16.dp)) {
 
                                         Text(
-                                            text = "🎟 ${ticketItem.displayTitle}",
+                                            text = "🎟 ${ticketItem.displayTitle} (${ticketItem.count} Adet)",
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold
                                         )

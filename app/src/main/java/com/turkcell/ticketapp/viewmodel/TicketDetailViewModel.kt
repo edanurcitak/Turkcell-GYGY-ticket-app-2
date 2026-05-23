@@ -7,12 +7,12 @@ import com.turkcell.core.domain.event.TicketRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// Ekranın o anki durumunu tutan State sınıfı
 data class TicketDetailState(
     val isLoading: Boolean = false,
-    val ticket: Ticket? = null,
+    val tickets: List<Ticket> = emptyList(),
     val errorMessage: String? = null
 )
 
@@ -23,25 +23,17 @@ class TicketDetailViewModel(
     private val _state = MutableStateFlow(TicketDetailState())
     val state: StateFlow<TicketDetailState> = _state.asStateFlow()
 
-    fun loadTicketDetail(id: String) {
+    fun loadTicketsByType(ticketTypeId: String) {
         viewModelScope.launch {
-            // Yükleniyor durumuna geç
-            _state.value = _state.value.copy(isLoading = true, errorMessage = null)
+            _state.update { it.copy(isLoading = true, errorMessage = null) }
 
-            // ID'ye göre bileti iste
-            ticketRepository.getTicketById(id).fold(
-                onSuccess = { fetchedTicket ->
-                    // Başarılıysa bileti state'e kaydet
-                    _state.value = _state.value.copy(
-                        isLoading = false,
-                        ticket = fetchedTicket
-                    )
+            ticketRepository.getMyTickets().fold(
+                onSuccess = { allTickets ->
+                    val filteredTickets = allTickets.filter { it.ticketTypeId == ticketTypeId }
+                    _state.update { it.copy(isLoading = false, tickets = filteredTickets) }
                 },
                 onFailure = { error ->
-                    _state.value = _state.value.copy(
-                        isLoading = false,
-                        errorMessage = error.message ?: "Bilet detayı yüklenemedi."
-                    )
+                    _state.update { it.copy(isLoading = false, errorMessage = error.message) }
                 }
             )
         }

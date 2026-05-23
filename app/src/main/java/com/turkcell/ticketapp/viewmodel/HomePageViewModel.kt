@@ -12,10 +12,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// 1. Ekrana (UI) sadece ihtiyacı olanı vereceğimiz yeni, basit modelimiz
 data class TicketUiItem(
-    val ticketId: String,
-    val displayTitle: String
+    val ticketTypeId: String,
+    val displayTitle: String,
+    val count: Int
 )
 
 data class HomePageUiState(
@@ -83,18 +83,20 @@ class HomePageViewModel(
     }
 
     private fun mapTicketsToUiItems(tickets: List<Ticket>, events: List<Event>): List<TicketUiItem> {
-        return tickets.map { ticket ->
+
+        val groupedTickets = tickets.groupBy { it.ticketTypeId }
+
+        return groupedTickets.map { (typeId, ticketsOfType) ->
             val matchedEvent = events.find { event ->
-                event.ticketTypes.any { it.id == ticket.ticketTypeId }
+                event.ticketTypes.any { it.id == typeId }
             }
-
-            val matchedTicketType = matchedEvent?.ticketTypes?.find { it.id == ticket.ticketTypeId }
-
-            val displayTitle = matchedTicketType?.name ?: matchedEvent?.name ?: "Bilet: ${ticket.id.take(5)}..."
+            val matchedTicketType = matchedEvent?.ticketTypes?.find { it.id == typeId }
+            val displayTitle = matchedTicketType?.name ?: matchedEvent?.name ?: "Bilet Türü: ${typeId.take(5)}..."
 
             TicketUiItem(
-                ticketId = ticket.id,
-                displayTitle = displayTitle
+                ticketTypeId = typeId,
+                displayTitle = displayTitle,
+                count = ticketsOfType.size
             )
         }
     }
