@@ -1,5 +1,6 @@
 package com.turkcell.ticketapp.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,7 +17,8 @@ import org.koin.androidx.compose.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomePageScreen(
-    viewModel: HomePageViewModel = koinViewModel()
+    viewModel: HomePageViewModel = koinViewModel(),
+    onTicketClick: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -38,7 +40,6 @@ fun HomePageScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Sekmelerin çizimi
             TabRow(selectedTabIndex = selectedTabIndex) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
@@ -49,7 +50,6 @@ fun HomePageScreen(
                 }
             }
 
-            // Hata varsa ekranda göster
             if (state.errorMessage != null) {
                 Text(
                     text = state.errorMessage!!,
@@ -58,16 +58,13 @@ fun HomePageScreen(
                 )
             }
 
-            // Seçili sekmeye göre listeleri göster
             when (selectedTabIndex) {
                 0 -> {
-                    // Etkinlikler Sekmesi
                     if (state.isLoadingEvents) {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp))
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             items(state.events) { event ->
-                                // Her bir etkinlik için kart çizimi
                                 Card(
                                     modifier = Modifier.fillMaxWidth().padding(8.dp),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -88,16 +85,30 @@ fun HomePageScreen(
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp))
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(state.myTickets) { ticket ->
-                                // Her bir bilet için kart çizimi
+
+                            items(state.myTickets) { ticketItem ->
                                 Card(
-                                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp)
+                                        .clickable { onTicketClick(ticketItem.ticketId) },
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                 ) {
                                     Column(modifier = Modifier.padding(16.dp)) {
-                                        Text(text = "Bilet Kodu: ${ticket.id}", style = MaterialTheme.typography.titleMedium)
-                                        Text(text = "Durum: ${ticket.status}", style = MaterialTheme.typography.bodyMedium)
-                                        Text(text = "QR: ${ticket.qrCode}", style = MaterialTheme.typography.bodySmall)
+
+                                        Text(
+                                            text = "🎟 ${ticketItem.displayTitle}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+
+                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                        Text(
+                                            text = "Bilet detayları >",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
                                     }
                                 }
                             }

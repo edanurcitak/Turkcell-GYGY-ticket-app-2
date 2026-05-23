@@ -22,4 +22,22 @@ class TicketRepositoryImpl(
             )
         }
     }
+
+    override suspend fun getTicketById(id: String): Result<Ticket> {
+        return try {
+
+            val ticketDto = ticketApi.getTicketById(id)
+
+            val ticket = Ticket(
+                id = ticketDto.id,
+                qrCode = ticketDto.qrCode,
+                status = ticketDto.status,
+                ticketTypeId = ticketDto.ticketTypeId
+            )
+
+            Result.success(ticket)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

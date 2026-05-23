@@ -13,9 +13,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute // YENİ EKLENDİ
 import com.turkcell.core.domain.auth.AuthRepository
 import com.turkcell.ticketapp.screen.LoginScreen
 import com.turkcell.ticketapp.screen.HomePageScreen
+import com.turkcell.ticketapp.screen.TicketDetailScreen // YENİ EKLENDİ
 import org.koin.compose.koinInject
 
 
@@ -45,9 +47,22 @@ private fun SplashScreen(){
 @Composable
 private fun AuthedNavHost(navController: NavHostController) {
     NavHost(navController = navController, startDestination = HomePage) {
+
         composable<HomePage> {
-            Text("Ana Sayfa")
-            HomePageScreen()
+            HomePageScreen(
+                onTicketClick = { selectedTicketId ->
+                    // Bilet tıklandığında TicketDetail sayfasına ID ile birlikte geçiş yap
+                    navController.navigate(TicketDetail(ticketId = selectedTicketId))
+                }
+            )
+        }
+
+        composable<TicketDetail> { backStackEntry ->
+            // Route içinden gelen ID'yi yakala
+            val detailRoute = backStackEntry.toRoute<TicketDetail>()
+
+            // Ekranı çağır ve yakalanan ID'yi içine pasla
+            TicketDetailScreen(ticketId = detailRoute.ticketId)
         }
     }
 }
