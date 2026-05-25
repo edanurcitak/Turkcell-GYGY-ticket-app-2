@@ -12,6 +12,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turkcell.ticketapp.viewmodel.RegisterViewModel
 import org.koin.androidx.compose.koinViewModel
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun RegisterScreen(
@@ -21,9 +23,12 @@ fun RegisterScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    // Kayıt başarılı olduğunda çalışacak tetikleyici
+    val context = LocalContext.current
+
     LaunchedEffect(state.isRegistered) {
         if(state.isRegistered) {
+            Toast.makeText(context, "Kayıt başarıyla tamamlandı!", Toast.LENGTH_LONG).show()
+
             onRegisterSuccess()
         }
     }
@@ -38,6 +43,15 @@ fun RegisterScreen(
         ) {
             Text("Kayıt Ol", style = MaterialTheme.typography.displaySmall)
             Spacer(Modifier.height(24.dp))
+
+            if (state.errorMessage != null) {
+                Text(
+                    text = state.errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(16.dp))
+            }
 
             OutlinedTextField(
                 value = state.name,

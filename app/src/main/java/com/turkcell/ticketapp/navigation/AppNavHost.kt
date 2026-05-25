@@ -17,6 +17,7 @@ import androidx.navigation.toRoute // YENİ EKLENDİ
 import com.turkcell.core.domain.auth.AuthRepository
 import com.turkcell.ticketapp.screen.LoginScreen
 import com.turkcell.ticketapp.screen.HomePageScreen
+import com.turkcell.ticketapp.screen.RegisterScreen
 import com.turkcell.ticketapp.screen.TicketDetailScreen // YENİ EKLENDİ
 import org.koin.compose.koinInject
 
@@ -51,7 +52,6 @@ private fun AuthedNavHost(navController: NavHostController) {
         composable<HomePage> {
             HomePageScreen(
                 onTicketClick = { selectedTypeId ->
-                    // Artık türe göre yönlendiriyoruz
                     navController.navigate(TicketDetail(ticketTypeId = selectedTypeId))
                 }
             )
@@ -59,7 +59,7 @@ private fun AuthedNavHost(navController: NavHostController) {
 
         composable<TicketDetail> { backStackEntry ->
             val detailRoute = backStackEntry.toRoute<TicketDetail>()
-            TicketDetailScreen(ticketTypeId = detailRoute.ticketTypeId) // İsim güncellendi
+            TicketDetailScreen(ticketTypeId = detailRoute.ticketTypeId)
         }
     }
 }
@@ -74,7 +74,14 @@ private fun UnAuthedNavHost(navController: NavHostController){
             )
         }
         composable<Register> {
-            Text("Register Screen")
+            RegisterScreen(
+                onRegisterSuccess = {
+                    navController.popBackStack()
+                },
+                onNavigateToLogin = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

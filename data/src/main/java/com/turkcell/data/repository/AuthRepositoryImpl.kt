@@ -42,7 +42,6 @@ class AuthRepositoryImpl(
         password: String
     ): Result<AuthSession> = runCatchingApi {
 
-        // Yeni alanları da DTO paketine doldurup API'ye yolluyoruz
         authApi.register(
             CredentialsDto(
             email = email,

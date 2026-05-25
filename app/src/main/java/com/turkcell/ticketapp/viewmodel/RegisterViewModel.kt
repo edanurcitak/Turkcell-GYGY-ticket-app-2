@@ -8,6 +8,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.turkcell.data.network.ApiException
+import com.turkcell.data.network.NetworkException
+import com.turkcell.core.util.getAuthErrorMessage
+import com.turkcell.core.util.NETWORK_ERROR_MESSAGE
+import com.turkcell.core.util.UNKNOWN_ERROR_MESSAGE
 
 data class RegisterUiState(
     val name: String = "",
@@ -60,7 +65,13 @@ class RegisterViewModel(
             )
                 .onSuccess { _state.update { it.copy(isLoading = false, isRegistered = true) } }
                 .onFailure { error ->
-                    _state.update { it.copy(isLoading = false, errorMessage = error.toUserMessage()) }
+                    val message = when (error) {
+                        is ApiException -> getAuthErrorMessage(error.code)
+                        is NetworkException -> NETWORK_ERROR_MESSAGE
+                        else -> error.message ?: UNKNOWN_ERROR_MESSAGE
+                    }
+
+                    _state.update { it.copy(isLoading = false, errorMessage = message) }
                 }
         }
     }
