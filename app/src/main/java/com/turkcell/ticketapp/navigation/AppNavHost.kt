@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute // YENİ EKLENDİ
 import com.turkcell.core.domain.auth.AuthRepository
+import com.turkcell.ticketapp.screen.EventDetailScreen
 import com.turkcell.ticketapp.screen.LoginScreen
 import com.turkcell.ticketapp.screen.HomePageScreen
 import com.turkcell.ticketapp.screen.RegisterScreen
@@ -53,7 +54,19 @@ private fun AuthedNavHost(navController: NavHostController) {
             HomePageScreen(
                 onTicketClick = { selectedTypeId ->
                     navController.navigate(TicketDetail(ticketTypeId = selectedTypeId))
+                },
+                onEventClick = { eventId ->
+                    navController.navigate(EventDetail(id = eventId))
                 }
+            )
+        }
+
+        composable<EventDetail> { backStackEntry ->
+            val detailRoute = backStackEntry.toRoute<EventDetail>()
+
+            EventDetailScreen(
+                eventId = detailRoute.id,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

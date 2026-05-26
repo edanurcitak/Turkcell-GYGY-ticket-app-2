@@ -18,7 +18,8 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun HomePageScreen(
     viewModel: HomePageViewModel = koinViewModel(),
-    onTicketClick: (String) -> Unit
+    onTicketClick: (String) -> Unit,
+    onEventClick: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -66,7 +67,10 @@ fun HomePageScreen(
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             items(state.events) { event ->
                                 Card(
-                                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp)
+                                        .clickable { onEventClick(event.id) },
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                 ) {
                                     Column(modifier = Modifier.padding(16.dp)) {

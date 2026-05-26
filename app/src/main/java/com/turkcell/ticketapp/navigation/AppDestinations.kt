@@ -11,3 +11,5 @@ object Register
 object HomePage
 @Serializable
 data class TicketDetail(val ticketTypeId: String)
+@Serializable
+data class EventDetail(val id: String)

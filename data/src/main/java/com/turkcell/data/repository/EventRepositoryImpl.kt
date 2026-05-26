@@ -34,4 +34,28 @@ class EventRepositoryImpl(
             )
         }
     }
+
+    override suspend fun getEvent(id: String): Result<Event> = runCatchingApi {
+        eventApi.getEvent(id)
+    }.map { dto ->
+        // Yukarıdakiyle aynı manuel mapleme işlemini tek bir obje için yapıyoruz
+        Event(
+            id = dto.id,
+            name = dto.name,
+            description = dto.description,
+            venue = dto.place,
+            startsAt = dto.startsAt,
+            endsAt = dto.endsAt,
+            ticketTypes = dto.ticketTypes.map { ticketTypeDto ->
+                TicketType(
+                    id = ticketTypeDto.id,
+                    name = ticketTypeDto.name,
+                    priceCents = ticketTypeDto.priceCents,
+                    capacity = ticketTypeDto.capacity,
+                    soldCount = ticketTypeDto.soldCount,
+                    remaining = ticketTypeDto.remaining
+                )
+            }
+        )
+    }
 }
