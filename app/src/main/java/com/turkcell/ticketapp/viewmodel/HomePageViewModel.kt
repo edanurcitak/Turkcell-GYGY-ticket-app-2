@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.turkcell.core.domain.event.Event
 import com.turkcell.core.domain.event.EventRepository
-import com.turkcell.core.domain.event.Ticket
+import com.turkcell.core.domain.purchase.Ticket
 import com.turkcell.core.domain.event.TicketRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -3,15 +3,18 @@ package com.turkcell.data.di
 import com.turkcell.core.domain.auth.AuthRepository
 import com.turkcell.core.domain.event.EventRepository
 import com.turkcell.core.domain.event.TicketRepository
+import com.turkcell.core.domain.purchase.PurchaseRepository
 import com.turkcell.data.local.TokenStore
 import com.turkcell.data.network.AuthInterceptor
 import com.turkcell.data.network.TokenAuthenticator
 import com.turkcell.data.remote.AuthApi
 import com.turkcell.data.remote.EventApi
+import com.turkcell.data.remote.PurchaseApi
 import com.turkcell.data.remote.TicketApi
 import com.turkcell.data.repository.AuthRepositoryImpl
 import com.turkcell.data.repository.EventRepositoryImpl
 import com.turkcell.data.repository.TicketRepositoryImpl
+import com.turkcell.data.repository.purchase.PurchaseRepositoryImpl
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -128,4 +131,8 @@ val dataModule = module {
             ticketApi = get()
         )
     }
+
+    single<PurchaseApi> { get<retrofit2.Retrofit>().create(PurchaseApi::class.java) }
+
+    single<PurchaseRepository> { PurchaseRepositoryImpl(get()) }
 }

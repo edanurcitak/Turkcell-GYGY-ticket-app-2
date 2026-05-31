@@ -66,7 +66,10 @@ private fun AuthedNavHost(navController: NavHostController) {
 
             EventDetailScreen(
                 eventId = detailRoute.id,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onPurchaseSuccess = {
+                    navController.popBackStack(HomePage, inclusive = false)
+                }
             )
         }
 

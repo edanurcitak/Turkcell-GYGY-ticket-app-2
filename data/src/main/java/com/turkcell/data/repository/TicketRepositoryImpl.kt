@@ -1,6 +1,6 @@
 package com.turkcell.data.repository
 
-import com.turkcell.core.domain.event.Ticket
+import com.turkcell.core.domain.purchase.Ticket
 import com.turkcell.core.domain.event.TicketRepository
 import com.turkcell.data.remote.TicketApi
 import com.turkcell.data.util.runCatchingApi

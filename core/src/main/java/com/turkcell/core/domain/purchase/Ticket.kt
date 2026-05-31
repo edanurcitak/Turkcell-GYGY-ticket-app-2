@@ -1,4 +1,4 @@
-package com.turkcell.core.domain.event
+package com.turkcell.core.domain.purchase
 
 data class Ticket(
     val id: String,

@@ -65,6 +65,8 @@ fun TicketDetailScreen(
                                 Text(text = "QR Kodu: ${ticket.qrCode}", style = MaterialTheme.typography.bodyLarge)
                             }
                         }
+
+                        //TODO: Pull to refresh
                     }
                 }
             }

@@ -53,7 +53,6 @@ class AuthRepositoryImpl(
         )
 
     }.onSuccess {
-        // İşlem başarılıysa burası çalışır
     }.map { i ->
         AuthSession(
             user = User(

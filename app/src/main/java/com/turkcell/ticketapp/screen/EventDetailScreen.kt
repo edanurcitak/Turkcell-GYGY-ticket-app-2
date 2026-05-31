@@ -20,118 +20,146 @@ import org.koin.androidx.compose.koinViewModel
 fun EventDetailScreen(
     eventId: String,
     onNavigateBack: () -> Unit,
+    onPurchaseSuccess: () -> Unit,
     viewModel: EventDetailViewModel = koinViewModel()
 ) {
-    // Sayfa açıldığında etkinliği yükle
     LaunchedEffect(eventId) {
         viewModel.loadEvent(eventId)
     }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    LaunchedEffect(state.isPaymentSuccessful) {
+        if (state.isPaymentSuccessful) {
+            onPurchaseSuccess()
+        }
+    }
+
+    if (state.showPaymentDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissPaymentDialog() },
+            title = { Text(text = "Ödeme Onayı") },
+            text = {
+                Text(text = "Toplam ₺${state.totalPriceCents / 100.0} tutarındaki bilet alım işlemini onaylıyor musunuz?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.confirmPayment() },
+                    enabled = !state.isPurchaseLoading
+                ) {
+                    if (state.isPurchaseLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Text("Onayla")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissPaymentDialog() }) {
+                    Text("İptal")
+                }
+            }
+        )
+    }
+
+    if (state.showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissSuccessDialog() },
+            title = {
+                Text(text = "İşlem Başarılı 🎉", color = MaterialTheme.colorScheme.primary)
+            },
+            text = {
+                Text(text = "Biletleriniz başarıyla satın alındı! Biletlerim sekmesinden görüntüleyebilirsiniz.")
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.dismissSuccessDialog() }) {
+                    Text("Tamam")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Etkinlik Detayı") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
-                    }
+                    IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Geri") }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             )
         },
         bottomBar = {
-            // Sadece içerik yüklendiğinde ve bilet seçildiğinde alt barı göster
             if (state.event != null) {
                 BottomCheckoutBar(
                     totalPriceCents = state.totalPriceCents,
-                    onBuyClick = {
-                        // Bir sonraki aşamada (Satın Alım) burayı dolduracağız
-                    }
+                    isLoading = state.isPurchaseLoading,
+                    onBuyClick = { viewModel.startPurchase() }
                 )
             }
         }
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             when {
-                // 1. LOADING STATE
-                state.isLoading -> {
+                state.isLoading && state.event == null -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
-                // 2. ERROR STATE
-                state.errorMessage != null -> {
+                state.errorMessage != null && state.event == null -> {
                     Text(
                         text = state.errorMessage!!,
                         color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier.align(Alignment.Center).padding(16.dp)
                     )
                 }
 
-                // 3. EMPTY STATE (Yüklendi ama etkinlik bulunamadı)
-                !state.isLoading && state.event == null && state.errorMessage == null -> {
-                    Text(
-                        text = "Etkinlik bulunamadı.",
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-
-                // 4. CONTENT STATE
                 state.event != null -> {
                     val event = state.event!!
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                    ) {
-                        // Etkinlik Üst Bilgileri
+                    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+
+                        if (state.errorMessage != null) {
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                                ) {
+                                    Text(
+                                        text = state.errorMessage!!,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                }
+                            }
+                        }
+
                         item {
                             Text(text = event.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(8.dp))
-
-                            // Tarih formatlama işlemi (Ödevdeki DateFormatter.kt kuralı)
-                            // Not: Eğer DateFormatter dosyan farklı bir format fonksiyonu kullanıyorsa burayı ona göre güncelle
                             Text(text = "Tarih: ${event.startsAt} - ${event.endsAt}", style = MaterialTheme.typography.bodyMedium)
                             Text(text = "Mekan: ${event.venue}", style = MaterialTheme.typography.bodyMedium)
-
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(text = "Açıklama", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Text(text = event.description, style = MaterialTheme.typography.bodyMedium)
-
                             Spacer(modifier = Modifier.height(24.dp))
-                            Divider()
+                            HorizontalDivider()
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(text = "Bilet Türleri", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(8.dp))
                         }
 
-                        // Bilet Türleri Listesi
                         items(event.ticketTypes) { ticketType ->
                             val currentCount = state.ticketCounts[ticketType.id] ?: 0
-
                             Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(text = ticketType.name, fontWeight = FontWeight.Bold)
-                                        // Kuruşu TL'ye çevir
                                         Text(text = "Fiyat: ₺${ticketType.priceCents / 100.0}")
                                         Text(
                                             text = "Stok: ${ticketType.remaining} / ${ticketType.capacity}",
@@ -139,30 +167,18 @@ fun EventDetailScreen(
                                             color = if (ticketType.remaining < 10) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-
-                                    // +/- Butonları
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        IconButton(
-                                            onClick = { viewModel.updateTicketCount(ticketType.id, -1) },
-                                            enabled = currentCount > 0
-                                        ) {
+                                        IconButton(onClick = { viewModel.updateTicketCount(ticketType.id, -1) }, enabled = currentCount > 0) {
                                             Text("-", style = MaterialTheme.typography.titleLarge)
                                         }
-
                                         Text(text = currentCount.toString(), modifier = Modifier.padding(horizontal = 8.dp))
-
-                                        IconButton(
-                                            onClick = { viewModel.updateTicketCount(ticketType.id, 1) },
-                                            enabled = currentCount < 20 && currentCount < ticketType.remaining
-                                        ) {
+                                        IconButton(onClick = { viewModel.updateTicketCount(ticketType.id, 1) }, enabled = currentCount < 20 && currentCount < ticketType.remaining) {
                                             Text("+", style = MaterialTheme.typography.titleLarge)
                                         }
                                     }
                                 }
                             }
                         }
-
-                        // Alt barın üstünü örtmemesi için boşluk
                         item { Spacer(modifier = Modifier.height(80.dp)) }
                     }
                 }
@@ -171,34 +187,27 @@ fun EventDetailScreen(
     }
 }
 
-// Alt kısımdaki Satın Alım Barı
 @Composable
-fun BottomCheckoutBar(totalPriceCents: Int, onBuyClick: () -> Unit) {
-    Surface(
-        shadowElevation = 8.dp,
-        color = MaterialTheme.colorScheme.surface
-    ) {
+fun BottomCheckoutBar(totalPriceCents: Int, isLoading: Boolean, onBuyClick: () -> Unit) {
+    Surface(shadowElevation = 8.dp, color = MaterialTheme.colorScheme.surface) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
                 Text(text = "Toplam Tutar", style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    text = "₺${totalPriceCents / 100.0}", // Kuruş -> TL dönüşümü
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = "₺${totalPriceCents / 100.0}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
-
             Button(
                 onClick = onBuyClick,
-                enabled = totalPriceCents > 0 // Sadece sepette ürün varsa buton aktif olsun
+                enabled = totalPriceCents > 0 && !isLoading
             ) {
-                Text("Satın Al")
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                } else {
+                    Text("Satın Al")
+                }
             }
         }
     }
