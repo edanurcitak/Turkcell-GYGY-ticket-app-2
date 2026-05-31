@@ -75,7 +75,12 @@ private fun AuthedNavHost(navController: NavHostController) {
 
         composable<TicketDetail> { backStackEntry ->
             val detailRoute = backStackEntry.toRoute<TicketDetail>()
-            TicketDetailScreen(ticketTypeId = detailRoute.ticketTypeId)
+            TicketDetailScreen(
+                ticketTypeId = detailRoute.ticketTypeId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

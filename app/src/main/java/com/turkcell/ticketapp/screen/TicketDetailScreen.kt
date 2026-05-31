@@ -1,75 +1,171 @@
 package com.turkcell.ticketapp.screen
 
+import android.app.Activity
+import android.graphics.Bitmap
+import android.view.WindowManager
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.zxing.BarcodeFormat
+import com.journeyapps.barcodescanner.BarcodeEncoder
 import com.turkcell.ticketapp.viewmodel.TicketDetailViewModel
 import org.koin.androidx.compose.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TicketDetailScreen(
-    ticketTypeId: String, // İsim güncellendi
+    ticketTypeId: String,
+    onNavigateBack: () -> Unit = {},
     viewModel: TicketDetailViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-
-    LaunchedEffect(key1 = ticketTypeId) {
+    LaunchedEffect(ticketTypeId) {
         viewModel.loadTicketsByType(ticketTypeId)
     }
 
-    Scaffold { paddingValues ->
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    DisposableEffect(Unit) {
+        val activity = context as? Activity
+        val window = activity?.window
+        val originalBrightness = window?.attributes?.screenBrightness ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+
+        window?.attributes = window?.attributes?.apply {
+            screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
+        }
+
+        onDispose {
+            window?.attributes = window?.attributes?.apply {
+                screenBrightness = originalBrightness
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Bilet QR Kodları") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            )
+        }
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
-            if (state.isLoading) {
-                CircularProgressIndicator()
-            } else if (state.errorMessage != null) {
-                Text(text = "Hata: ${state.errorMessage}", color = MaterialTheme.colorScheme.error)
-            } else if (state.tickets.isNotEmpty()) {
+            when {
+                state.isLoading -> CircularProgressIndicator()
 
-                // YENİ: Alt alta listelemek için LazyColumn kullanıyoruz
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp) // Kartlar arası boşluk
-                ) {
-                    item {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                            Text(text = "🎟 Bilet Detayları", style = MaterialTheme.typography.headlineMedium)
-                            Divider(modifier = Modifier.padding(vertical = 8.dp))
-                        }
-                    }
+                state.errorMessage != null -> {
+                    Text(
+                        text = state.errorMessage!!,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
 
-                    // O türe ait kaç bilet varsa hepsini alt alta kart olarak çizer
-                    items(state.tickets) { ticket ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                state.tickets.isEmpty() && !state.isLoading -> {
+                    Text("Bu türe ait bilet bulunamadı.", modifier = Modifier.padding(16.dp))
+                }
+
+                state.tickets.isNotEmpty() -> {
+                    LazyColumn(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(vertical = 24.dp)
+                    ) {
+                        item {
+                            Text(
+                                text = "Kapı görevlisine bu kodu okutunuz",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 16.dp)
                             )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                        }
+
+                        items(state.tickets) { ticket ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                             ) {
-                                Text(text = "Bilet ID: ${ticket.id}", style = MaterialTheme.typography.bodyLarge)
-                                Text(text = "Durum: ${ticket.status}", style = MaterialTheme.typography.bodyLarge)
-                                Text(text = "QR Kodu: ${ticket.qrCode}", style = MaterialTheme.typography.bodyLarge)
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(24.dp)
+                                ) {
+                                    val qrBitmap = rememberQrBitmap(qrCodeContent = ticket.qrCode)
+
+                                    if (qrBitmap != null) {
+                                        Image(
+                                            bitmap = qrBitmap.asImageBitmap(),
+                                            contentDescription = "Bilet QR Kodu",
+                                            modifier = Modifier.size(250.dp)
+                                        )
+                                    } else {
+                                        Text("QR kod oluşturulamadı.", color = MaterialTheme.colorScheme.error)
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    Text(
+                                        text = "Bilet No: ${ticket.id}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Text(
+                                        text = "Durum: ${ticket.status}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                         }
-
-                        //TODO: Pull to refresh
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun rememberQrBitmap(qrCodeContent: String): Bitmap? {
+    return remember(qrCodeContent) {
+        try {
+            val barcodeEncoder = BarcodeEncoder()
+            barcodeEncoder.encodeBitmap(qrCodeContent, BarcodeFormat.QR_CODE, 512, 512)
+        } catch (e: Exception) {
+            null
         }
     }
 }
