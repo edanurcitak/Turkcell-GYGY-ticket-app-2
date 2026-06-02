@@ -66,6 +66,12 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logout(): Result<Unit> {
-        TODO("Not yet implemented")
+        return try {
+            tokenStore.clearBlocking()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

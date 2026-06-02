@@ -13,18 +13,24 @@ class TokenAuthenticator(
     private val tokenStore: TokenStore,
     private val refreshApiProvider: () -> AuthApi,
 ) : Authenticator {
+
     override fun authenticate(route: Route?, response: Response): Request? {
-        // İsteğin tekrar tekrar buraya düşmesi -> refresh olsa bile 401 gelebilir
-        if(response.priorResponseCount() >= 1) return null
+        if (response.priorResponseCount() >= 1) {
+            tokenStore.clearBlocking()
+            return null
+        }
 
-        val refreshToken = tokenStore.refreshTokenBlocking() ?: return null;
+        val refreshToken = tokenStore.refreshTokenBlocking()
+        if (refreshToken == null) {
+            tokenStore.clearBlocking()
+            return null
+        }
 
-        return synchronized(this)
-        {
+        return synchronized(this) {
             val current = tokenStore.accessTokenBlocking()
             val sentToken = response.request.header("Authorization")?.removePrefix("Bearer ")
 
-            if(current != null && current != sentToken){
+            if (current != null && current != sentToken) {
                 return@synchronized response.request.signWith(current)
             }
 
@@ -32,7 +38,7 @@ class TokenAuthenticator(
                 runBlocking { refreshApiProvider().refresh(RefreshRequestDto(refreshToken)) }
             }.getOrNull()
 
-            if(newPair==null){
+            if (newPair == null) {
                 tokenStore.clearBlocking()
                 return@synchronized null
             }
@@ -42,13 +48,13 @@ class TokenAuthenticator(
         }
     }
 
-    private fun Request.signWith(accessToken: String): Request = newBuilder().header("Authorization", "Bearer $accessToken").build()
+    private fun Request.signWith(accessToken: String): Request =
+        newBuilder().header("Authorization", "Bearer $accessToken").build()
 
-    private fun Response.priorResponseCount() : Int{
+    private fun Response.priorResponseCount(): Int {
         var count = 0
         var prior = priorResponse
-        while(prior != null)
-        {
+        while (prior != null) {
             count++
             prior = prior.priorResponse
         }

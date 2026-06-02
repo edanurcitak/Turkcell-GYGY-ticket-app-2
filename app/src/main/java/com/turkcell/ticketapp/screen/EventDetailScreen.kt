@@ -3,9 +3,12 @@ package com.turkcell.ticketapp.screen
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,14 +42,9 @@ fun EventDetailScreen(
         AlertDialog(
             onDismissRequest = { viewModel.dismissPaymentDialog() },
             title = { Text(text = "Ödeme Onayı") },
-            text = {
-                Text(text = "Toplam ₺${state.totalPriceCents / 100.0} tutarındaki bilet alım işlemini onaylıyor musunuz?")
-            },
+            text = { Text(text = "Toplam ₺${state.totalPriceCents / 100.0} tutarındaki bilet alım işlemini onaylıyor musunuz?") },
             confirmButton = {
-                Button(
-                    onClick = { viewModel.confirmPayment() },
-                    enabled = !state.isPurchaseLoading
-                ) {
+                Button(onClick = { viewModel.confirmPayment() }, enabled = !state.isPurchaseLoading) {
                     if (state.isPurchaseLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
                     } else {
@@ -54,28 +52,16 @@ fun EventDetailScreen(
                     }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { viewModel.dismissPaymentDialog() }) {
-                    Text("İptal")
-                }
-            }
+            dismissButton = { TextButton(onClick = { viewModel.dismissPaymentDialog() }) { Text("İptal") } }
         )
     }
 
     if (state.showSuccessDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissSuccessDialog() },
-            title = {
-                Text(text = "İşlem Başarılı 🎉", color = MaterialTheme.colorScheme.primary)
-            },
-            text = {
-                Text(text = "Biletleriniz başarıyla satın alındı! Biletlerim sekmesinden görüntüleyebilirsiniz.")
-            },
-            confirmButton = {
-                Button(onClick = { viewModel.dismissSuccessDialog() }) {
-                    Text("Tamam")
-                }
-            }
+            title = { Text(text = "İşlem Başarılı 🎉", color = MaterialTheme.colorScheme.primary) },
+            text = { Text(text = "Biletleriniz başarıyla satın alındı! Biletlerim sekmesinden görüntüleyebilirsiniz.") },
+            confirmButton = { Button(onClick = { viewModel.dismissSuccessDialog() }) { Text("Tamam") } }
         )
     }
 
@@ -99,24 +85,44 @@ fun EventDetailScreen(
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+
+        // YENİ: PullToRefreshBox Entegrasyonu
+        PullToRefreshBox(
+            isRefreshing = state.isLoading,
+            onRefresh = { viewModel.loadEvent(eventId) },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
             when {
+                // Sadece ilk açılışta liste boşken ortada dönen çark çıksın
                 state.isLoading && state.event == null -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 }
 
                 state.errorMessage != null && state.event == null -> {
-                    Text(
-                        text = state.errorMessage!!,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center).padding(16.dp)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = state.errorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
                 }
 
                 state.event != null -> {
                     val event = state.event!!
                     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 
+                        // Hata mesajını liste içinde gösterme
                         if (state.errorMessage != null) {
                             item {
                                 Card(

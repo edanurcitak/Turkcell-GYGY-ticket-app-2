@@ -4,7 +4,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +35,14 @@ fun HomePageScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Etkinlikler", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = { viewModel.logout() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Çıkış Yap"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -59,60 +72,93 @@ fun HomePageScreen(
                 )
             }
 
-            when (selectedTabIndex) {
-                0 -> {
-                    if (state.isLoadingEvents) {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp))
+            // Hangi sekmedeysek onun yüklenme durumunu kontrol et
+            val isRefreshing = if (selectedTabIndex == 0) state.isLoadingEvents else state.isLoadingTickets
+
+            // YENİ: PullToRefreshBox Entegrasyonu
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    if (selectedTabIndex == 0) {
+                        viewModel.fetchEvents() // Kendi fonksiyon ismine göre düzenle
                     } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(state.events) { event ->
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(8.dp)
-                                        .clickable { onEventClick(event.id) },
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                                ) {
-                                    Column(modifier = Modifier.padding(16.dp)) {
-                                        Text(text = event.name, style = MaterialTheme.typography.titleMedium)
-                                        Text(text = event.venue, style = MaterialTheme.typography.bodyMedium)
-                                        Text(text = "Başlangıç: ${event.startsAt}", style = MaterialTheme.typography.bodySmall)
+                        viewModel.fetchMyTickets() // Kendi fonksiyon ismine göre düzenle
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when (selectedTabIndex) {
+                    0 -> {
+                        // Etkinlikler Sekmesi
+                        if (state.isLoadingEvents && state.events.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        } else if (state.events.isEmpty() && !state.isLoadingEvents) {
+                            Column(
+                                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("Henüz etkinlik bulunmuyor.")
+                            }
+                        } else {
+                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                items(state.events) { event ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(8.dp)
+                                            .clickable { onEventClick(event.id) },
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(16.dp)) {
+                                            Text(text = event.name, style = MaterialTheme.typography.titleMedium)
+                                            Text(text = event.venue, style = MaterialTheme.typography.bodyMedium)
+                                            Text(text = "Başlangıç: ${event.startsAt}", style = MaterialTheme.typography.bodySmall)
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
-                1 -> {
-                    // Biletlerim Sekmesi
-                    if (state.isLoadingTickets) {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp))
-                    } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-
-                            items(state.myTickets) { ticketItem ->
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(8.dp)
-                                        .clickable { onTicketClick(ticketItem.ticketTypeId) },
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                                ) {
-                                    Column(modifier = Modifier.padding(16.dp)) {
-
-                                        Text(
-                                            text = "🎟 ${ticketItem.displayTitle} (${ticketItem.count} Adet)",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold
-                                        )
-
-                                        Spacer(modifier = Modifier.height(6.dp))
-
-                                        Text(
-                                            text = "Bilet detayları >",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
+                    1 -> {
+                        // Biletlerim Sekmesi
+                        if (state.isLoadingTickets && state.myTickets.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        } else if (state.myTickets.isEmpty() && !state.isLoadingTickets) {
+                            Column(
+                                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("Henüz biletiniz bulunmuyor.")
+                            }
+                        } else {
+                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                items(state.myTickets) { ticketItem ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(8.dp)
+                                            .clickable { onTicketClick(ticketItem.ticketTypeId) },
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(16.dp)) {
+                                            Text(
+                                                text = "🎟 ${ticketItem.displayTitle} (${ticketItem.count} Adet)",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            Text(
+                                                text = "Bilet detayları >",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                     }
                                 }
                             }

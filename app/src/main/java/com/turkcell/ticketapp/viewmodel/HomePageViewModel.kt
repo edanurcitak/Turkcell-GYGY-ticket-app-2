@@ -2,6 +2,7 @@ package com.turkcell.ticketapp.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.turkcell.core.domain.auth.AuthRepository
 import com.turkcell.core.domain.event.Event
 import com.turkcell.core.domain.event.EventRepository
 import com.turkcell.core.domain.purchase.Ticket
@@ -29,7 +30,8 @@ data class HomePageUiState(
 
 class HomePageViewModel(
     private val eventRepository: EventRepository,
-    private val ticketRepository: TicketRepository
+    private val ticketRepository: TicketRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomePageUiState())
@@ -40,7 +42,7 @@ class HomePageViewModel(
         fetchMyTickets()
     }
 
-    private fun fetchEvents() {
+    fun fetchEvents() {
         _state.update { it.copy(isLoadingEvents = true, errorMessage = null) }
 
         viewModelScope.launch {
@@ -61,7 +63,7 @@ class HomePageViewModel(
         }
     }
 
-    private fun fetchMyTickets() {
+    fun fetchMyTickets() {
         _state.update { it.copy(isLoadingTickets = true, errorMessage = null) }
 
         viewModelScope.launch {
@@ -102,4 +104,12 @@ class HomePageViewModel(
     }
 
     fun consumeError() = _state.update { it.copy(errorMessage = null) }
+
+    // Kullanıcının kendi isteğiyle çıkış yapması
+    fun logout() {
+        viewModelScope.launch {
+            authRepository.logout()
+        }
+    }
+
 }
