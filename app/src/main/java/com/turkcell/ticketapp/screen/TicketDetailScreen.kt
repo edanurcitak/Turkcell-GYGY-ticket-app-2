@@ -1,9 +1,7 @@
 package com.turkcell.ticketapp.screen
 
 import android.app.Activity
-import android.graphics.Bitmap
 import android.view.WindowManager
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,14 +14,12 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.zxing.BarcodeFormat
-import com.journeyapps.barcodescanner.BarcodeEncoder
+import com.turkcell.ticketapp.component.QrCodeImage
 import com.turkcell.ticketapp.viewmodel.TicketDetailViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -74,14 +70,14 @@ fun TicketDetailScreen(
     ) { paddingValues ->
 
         PullToRefreshBox(
-            isRefreshing = state.isLoading,
-            onRefresh = { viewModel.loadTicketsByType(ticketTypeId) },
+            isRefreshing = state.isRefreshing,
+            onRefresh = { viewModel.refreshTicketsByType(ticketTypeId) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
             when {
-                state.isLoading && state.tickets.isEmpty() -> {
+                state.isLoading && !state.isRefreshing && state.tickets.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
@@ -145,17 +141,11 @@ fun TicketDetailScreen(
                                         .fillMaxWidth()
                                         .padding(24.dp)
                                 ) {
-                                    val qrBitmap = rememberQrBitmap(qrCodeContent = ticket.qrCode)
 
-                                    if (qrBitmap != null) {
-                                        Image(
-                                            bitmap = qrBitmap.asImageBitmap(),
-                                            contentDescription = "Bilet QR Kodu",
-                                            modifier = Modifier.size(250.dp)
-                                        )
-                                    } else {
-                                        Text("QR kod oluşturulamadı.", color = MaterialTheme.colorScheme.error)
-                                    }
+                                    QrCodeImage(
+                                        content = ticket.qrCode,
+                                        modifier = Modifier.size(250.dp)
+                                    )
 
                                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -179,18 +169,6 @@ fun TicketDetailScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun rememberQrBitmap(qrCodeContent: String): Bitmap? {
-    return remember(qrCodeContent) {
-        try {
-            val barcodeEncoder = BarcodeEncoder()
-            barcodeEncoder.encodeBitmap(qrCodeContent, BarcodeFormat.QR_CODE, 512, 512)
-        } catch (e: Exception) {
-            null
         }
     }
 }

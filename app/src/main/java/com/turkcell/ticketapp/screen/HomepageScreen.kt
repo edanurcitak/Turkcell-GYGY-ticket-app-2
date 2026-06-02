@@ -72,25 +72,18 @@ fun HomePageScreen(
                 )
             }
 
-            // Hangi sekmedeysek onun yüklenme durumunu kontrol et
-            val isRefreshing = if (selectedTabIndex == 0) state.isLoadingEvents else state.isLoadingTickets
+            // UI sadece güncel duruma (state) bakar, karar vermez.
+            val isRefreshing = if (selectedTabIndex == 0) state.isRefreshingEvents else state.isRefreshingTickets
 
-            // YENİ: PullToRefreshBox Entegrasyonu
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
-                onRefresh = {
-                    if (selectedTabIndex == 0) {
-                        viewModel.fetchEvents() // Kendi fonksiyon ismine göre düzenle
-                    } else {
-                        viewModel.fetchMyTickets() // Kendi fonksiyon ismine göre düzenle
-                    }
-                },
+                onRefresh = { viewModel.refreshActiveTab(selectedTabIndex) }, // Business logic ViewModel'a taşındı
                 modifier = Modifier.fillMaxSize()
             ) {
                 when (selectedTabIndex) {
                     0 -> {
-                        // Etkinlikler Sekmesi
-                        if (state.isLoadingEvents && state.events.isEmpty()) {
+                        // Sadece ilk yüklemede (refresh değilken) ortadaki çarkı göster
+                        if (state.isLoadingEvents && !state.isRefreshingEvents) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator()
                             }
@@ -123,8 +116,8 @@ fun HomePageScreen(
                         }
                     }
                     1 -> {
-                        // Biletlerim Sekmesi
-                        if (state.isLoadingTickets && state.myTickets.isEmpty()) {
+                        // Biletlerim Sekmesi - Sadece ilk yüklemede ortadaki çarkı göster
+                        if (state.isLoadingTickets && !state.isRefreshingTickets) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator()
                             }

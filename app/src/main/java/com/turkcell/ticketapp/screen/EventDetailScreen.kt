@@ -86,17 +86,16 @@ fun EventDetailScreen(
         }
     ) { paddingValues ->
 
-        // YENİ: PullToRefreshBox Entegrasyonu
         PullToRefreshBox(
-            isRefreshing = state.isLoading,
-            onRefresh = { viewModel.loadEvent(eventId) },
+            isRefreshing = state.isRefreshing,
+            onRefresh = { viewModel.refreshEvent(eventId) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
             when {
-                // Sadece ilk açılışta liste boşken ortada dönen çark çıksın
-                state.isLoading && state.event == null -> {
+
+                state.isLoading && !state.isRefreshing && state.event == null -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
@@ -122,7 +121,6 @@ fun EventDetailScreen(
                     val event = state.event!!
                     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 
-                        // Hata mesajını liste içinde gösterme
                         if (state.errorMessage != null) {
                             item {
                                 Card(

@@ -2,6 +2,7 @@ package com.turkcell.ticketapp.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.turkcell.core.domain.event.Event // Kendi import yoluna göre kontrol et
 import com.turkcell.core.domain.event.EventRepository
 import com.turkcell.core.domain.purchase.PurchaseItem
 import com.turkcell.core.domain.purchase.PurchaseRepository
@@ -12,6 +13,26 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+// State sınıfını ViewModel'in hemen üstüne taşıdık (Proje standardına uygun hale geldi)
+data class EventDetailState(
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false, // Pull-to-refresh animasyonu için
+    val isPurchaseLoading: Boolean = false,
+    val showPaymentDialog: Boolean = false,
+    val showSuccessDialog: Boolean = false,
+    val isPaymentSuccessful: Boolean = false,
+    val pendingPurchaseId: String? = null,
+    val event: Event? = null,
+    val ticketCounts: Map<String, Int> = emptyMap(),
+    val errorMessage: String? = null
+) {
+
+val totalPriceCents: Int
+    get() = event?.ticketTypes?.sumOf { ticketType ->
+        (ticketCounts[ticketType.id] ?: 0) * ticketType.priceCents
+    } ?: 0
+}
+
 class EventDetailViewModel(
     private val eventRepository: EventRepository,
     private val purchaseRepository: PurchaseRepository
@@ -20,15 +41,41 @@ class EventDetailViewModel(
     private val _state = MutableStateFlow(EventDetailState())
     val state = _state.asStateFlow()
 
+    // Sadece ilk açılışta çağrılır (Ortada çark döner)
     fun loadEvent(id: String) {
+        if (_state.value.isLoading || _state.value.isRefreshing) return
         _state.update { it.copy(isLoading = true, errorMessage = null) }
+        fetchEventData(id)
+    }
+
+    // Kullanıcı sayfayı yukarıdan çekip yenilerken çağrılır (Üstte ok döner)
+    fun refreshEvent(id: String) {
+        if (_state.value.isLoading || _state.value.isRefreshing) return
+        _state.update { it.copy(isRefreshing = true, errorMessage = null) }
+        fetchEventData(id)
+    }
+
+    // Asıl veriyi çeken ortak fonksiyon
+    private fun fetchEventData(id: String) {
         viewModelScope.launch {
             eventRepository.getEvent(id)
                 .onSuccess { event ->
-                    _state.update { it.copy(isLoading = false, event = event) }
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false, // Yenileme bittiğinde oku durdur
+                            event = event
+                        )
+                    }
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(isLoading = false, errorMessage = error.message ?: "Etkinlik yüklenemedi.") }
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false, // Hata olsa bile oku durdur
+                            errorMessage = error.message ?: "Etkinlik yüklenemedi."
+                        )
+                    }
                 }
         }
     }
@@ -68,8 +115,9 @@ class EventDetailViewModel(
                     val message = getPurchaseErrorMessage(apiError?.code, apiError?.message)
                     _state.update { it.copy(isPurchaseLoading = false, errorMessage = message) }
 
+                    // Kapasite aşımı hatasında, en güncel bilet stoklarını görmek için sayfayı yenile
                     if (apiError?.code == 409 && apiError.message?.contains("capacity_exceeded") == true) {
-                        loadEvent(currentEvent.id)
+                        refreshEvent(currentEvent.id)
                     }
                 }
         }
@@ -87,8 +135,8 @@ class EventDetailViewModel(
                         it.copy(
                             isPurchaseLoading = false,
                             showPaymentDialog = false,
-                            //isPaymentSuccessful = true,
-                            showSuccessDialog = true)
+                            showSuccessDialog = true
+                        )
                     }
                 }
                 .onFailure { error ->

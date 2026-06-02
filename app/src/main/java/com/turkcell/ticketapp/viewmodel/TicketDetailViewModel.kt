@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 
 data class TicketDetailState(
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val tickets: List<Ticket> = emptyList(),
     val errorMessage: String? = null
 )
@@ -24,16 +25,38 @@ class TicketDetailViewModel(
     val state: StateFlow<TicketDetailState> = _state.asStateFlow()
 
     fun loadTicketsByType(ticketTypeId: String) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessage = null) }
+        if (_state.value.isLoading || _state.value.isRefreshing) return
+        _state.update { it.copy(isLoading = true, errorMessage = null) }
+        fetchTickets(ticketTypeId)
+    }
 
+    fun refreshTicketsByType(ticketTypeId: String) {
+        if (_state.value.isLoading || _state.value.isRefreshing) return
+        _state.update { it.copy(isRefreshing = true, errorMessage = null) }
+        fetchTickets(ticketTypeId)
+    }
+
+    private fun fetchTickets(ticketTypeId: String) {
+        viewModelScope.launch {
             ticketRepository.getMyTickets().fold(
                 onSuccess = { allTickets ->
                     val filteredTickets = allTickets.filter { it.ticketTypeId == ticketTypeId }
-                    _state.update { it.copy(isLoading = false, tickets = filteredTickets) }
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            tickets = filteredTickets
+                        )
+                    }
                 },
                 onFailure = { error ->
-                    _state.update { it.copy(isLoading = false, errorMessage = error.message) }
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            errorMessage = error.message
+                        )
+                    }
                 }
             )
         }
