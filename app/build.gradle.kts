@@ -60,6 +60,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.zxing.android.embedded)
+    implementation(libs.androidx.material.icons.extended)
 
     //DI
     implementation(libs.koin.android)

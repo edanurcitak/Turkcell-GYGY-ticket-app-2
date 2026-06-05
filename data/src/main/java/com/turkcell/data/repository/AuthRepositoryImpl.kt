@@ -15,24 +15,31 @@ class AuthRepositoryImpl(
     private val authApi: AuthApi,
     private val tokenStore: TokenStore
 ) : AuthRepository {
+
     override val isLoggedIn: Flow<Boolean> = tokenStore.accessToken.map { it != null }
+
+    override val currentUserRole: Flow<UserRole?> = tokenStore.userRole.map { roleString ->
+        UserRole.fromApi(roleString)
+    }
 
     override suspend fun login(
         email: String,
         password: String
     ): Result<AuthSession> = runCatchingApi {
-        authApi.login(CredentialsDto(email=email, password=password))
+        authApi.login(CredentialsDto(email = email, password = password))
     }.onSuccess {
-        tokenStore.save(it.accessToken, it.refreshToken)
-    }
-        .map {
-                tokenPairDto -> AuthSession(
+        tokenStore.save(it.accessToken, it.refreshToken, it.user.role)
+    }.map { tokenPairDto ->
+        AuthSession(
             user = User(
-                tokenPairDto.user.id, tokenPairDto.user.email, UserRole.fromApi(tokenPairDto.user.role),
+                id = tokenPairDto.user.id,
+                email = tokenPairDto.user.email,
+                role = UserRole.fromApi(tokenPairDto.user.role),
             ),
             accessToken = tokenPairDto.accessToken,
-            refreshToken = tokenPairDto.refreshToken)
-        }
+            refreshToken = tokenPairDto.refreshToken
+        )
+    }
 
     override suspend fun register(
         name: String,
@@ -41,18 +48,17 @@ class AuthRepositoryImpl(
         email: String,
         password: String
     ): Result<AuthSession> = runCatchingApi {
-
         authApi.register(
             CredentialsDto(
-            email = email,
-            password = password,
-            name = name,
-            surname = surname,
-            phone = phone
+                email = email,
+                password = password,
+                name = name,
+                surname = surname,
+                phone = phone
+            )
         )
-        )
-
     }.onSuccess {
+        tokenStore.save(it.accessToken, it.refreshToken, it.user.role)
     }.map { i ->
         AuthSession(
             user = User(
@@ -68,7 +74,6 @@ class AuthRepositoryImpl(
     override suspend fun logout(): Result<Unit> {
         return try {
             tokenStore.clearBlocking()
-
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

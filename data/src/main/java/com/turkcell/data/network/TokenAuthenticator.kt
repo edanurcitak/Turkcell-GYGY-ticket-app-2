@@ -43,7 +43,10 @@ class TokenAuthenticator(
                 return@synchronized null
             }
 
-            tokenStore.saveBlocking(newPair.accessToken, newPair.refreshToken)
+            val currentRole = tokenStore.userRoleBlocking() ?: "USER"
+
+            tokenStore.saveBlocking(newPair.accessToken, newPair.refreshToken, currentRole)
+
             response.request.signWith(newPair.accessToken)
         }
     }
