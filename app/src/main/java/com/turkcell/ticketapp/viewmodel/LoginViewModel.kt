@@ -1,70 +1,59 @@
-package com.turkcell.ticketapp.navigation
+package com.turkcell.ticketapp.viewmodel
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.toRoute
-import com.turkcell.ticketapp.screen.*
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.turkcell.core.domain.auth.AuthRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import com.turkcell.data.network.ApiException
+import com.turkcell.data.network.NetworkException
+import com.turkcell.core.util.getAuthErrorMessage
+import com.turkcell.core.util.NETWORK_ERROR_MESSAGE
+import com.turkcell.core.util.UNKNOWN_ERROR_MESSAGE
 
 
-// --- 1. NORMAL KULLANICI EKRANLARI ---
-@Composable
-private fun UserNavHost(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = HomePage) {
-        composable<HomePage> {
-            HomePageScreen(
-                onTicketClick = { selectedTypeId -> navController.navigate(TicketDetail(ticketTypeId = selectedTypeId)) },
-                onEventClick = { eventId -> navController.navigate(EventDetail(id = eventId)) }
-            )
-        }
-        composable<EventDetail> { backStackEntry ->
-            val detailRoute = backStackEntry.toRoute<EventDetail>()
-            EventDetailScreen(
-                eventId = detailRoute.id,
-                onNavigateBack = { navController.popBackStack() },
-                onPurchaseSuccess = { navController.popBackStack(HomePage, inclusive = false) }
-            )
-        }
-        composable<TicketDetail> { backStackEntry ->
-            val detailRoute = backStackEntry.toRoute<TicketDetail>()
-            TicketDetailScreen(
-                ticketTypeId = detailRoute.ticketTypeId,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-    }
+data class LoginUiState(val email: String = "",
+                        val password: String = "",
+                        val isLoading: Boolean = false,
+                        val errorMessage: String? = null,
+                        val isLoggedIn: Boolean = false
+) {
+    val canSubmit: Boolean get() = email.isNotBlank() && password.length >= 8 && !isLoading
 }
 
-// --- 2. GÖREVLİ (STAFF) EKRANLARI ---
-@Composable
-private fun StaffNavHost(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = StaffHome) {
-        composable<StaffHome> {
-            StaffScreen()
+class LoginViewModel(
+    private val authRepository: AuthRepository //bağımlılık
+) : ViewModel() {
+    private val _state = MutableStateFlow(LoginUiState())
+    val state: StateFlow<LoginUiState> = _state.asStateFlow()
+
+    fun onEmailChange(value: String) = _state.update { it.copy(email = value, errorMessage = null) }
+    fun onPasswordChange(value: String) =
+        _state.update { it.copy(password = value, errorMessage = null) }
+
+    fun consumeError() = _state.update { it.copy(errorMessage = null) }
+
+    fun submit() {
+        val current = _state.value
+        if (!current.canSubmit) return
+
+        _state.update { it.copy(isLoading = true, errorMessage = null) }
+
+        viewModelScope.launch {
+            authRepository.login(current.email, current.password)
+                .onSuccess { _state.update { it.copy(isLoading = false, isLoggedIn = true) } }
+                .onFailure { error ->
+                    val message = when (error) {
+                        is ApiException -> getAuthErrorMessage(error.code)
+                        is NetworkException -> NETWORK_ERROR_MESSAGE
+                        else -> error.message ?: UNKNOWN_ERROR_MESSAGE
+                    }
+
+                    _state.update { it.copy(isLoading = false, errorMessage = message) }
+                }
         }
-    }
-}
-
-// --- 3. ADMİN EKRANLARI ---
-@Composable
-private fun AdminNavHost(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = AdminHome) {
-        composable<AdminHome> {
-            // TODO: ADMIN SCREEN
-        }
-    }
-}
-
-
-@Composable
-private fun SplashScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
     }
 }
